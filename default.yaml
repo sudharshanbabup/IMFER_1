@@ -1,0 +1,73 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# IMFER Configuration — hyperparameters from Section IV-C
+# ═══════════════════════════════════════════════════════════════════════════
+
+model:
+  # Encoder output dimensions (Section III-C)
+  text_dim: 768         # RoBERTa-base
+  audio_dim: 512        # wav2vec 2.0 (projected from 768)
+  visual_dim: 256       # 3D-ResNet
+
+  # HCMA (Section III-D)
+  d_k: 64               # Low-rank projection dimension  (d_k ≪ d)
+  d_model: 512          # Fused hidden dimension d
+  num_cross_heads: 1    # Single-head cross-modal attention
+
+  # CASGT (Section III-E)
+  context_window: 10    # W = 10 (inter-speaker edge window)
+  gat_heads: 8          # GAT multi-head attention
+  transformer_layers: 4 # 4-layer transformer encoder
+  transformer_heads: 8  # 8 transformer attention heads
+
+  # MCS (Section III-F)
+  mcs_epsilon: 1.0e-8   # ε for log stability in MCS entropy
+
+  # Regularization
+  dropout: 0.3
+
+training:
+  # Optimization (Section IV-C)
+  epochs: 100
+  batch_size: 32        # 32 utterances per batch
+  lr_pretrained: 2.0e-5 # lr for pretrained encoder layers
+  lr_new: 1.0e-3        # lr for new layers (HCMA, CASGT, MCS)
+  warmup_ratio: 0.1     # 10% linear warmup
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  patience: 10          # Early stopping on validation WF1
+
+  # Loss weights (Eq. 7, Section III-G)
+  lambda_mcs: 0.1       # λ₁ — MCS entropy regularization
+  lambda_align: 0.05    # λ₂ — Contrastive text-audio alignment
+  tau: 0.07             # τ  — Alignment temperature
+
+  # Reproducibility
+  seed: 42
+  num_runs: 5           # 5 independent runs, report mean ± std
+
+data:
+  max_text_len: 128     # Max BPE tokens
+  audio_sample_rate: 16000  # 16 kHz
+  video_fps: 30
+  video_clip_frames: 16 # 3D-ResNet clip length
+
+# Dataset-specific settings (Section IV-A)
+datasets:
+  iemocap:
+    num_classes: 6
+    labels: [happy, sad, neutral, angry, excited, frustrated]
+    weighted_ce: false
+  meld:
+    num_classes: 7
+    labels: [neutral, surprise, fear, sadness, joy, disgust, anger]
+    weighted_ce: true   # Class imbalance addressed via weighted CE
+  emorynlp:
+    num_classes: 7
+    labels: [joyful, mad, peaceful, powerful, sad, scared, neutral]
+    weighted_ce: true
+
+logging:
+  log_dir: logs/
+  checkpoint_dir: checkpoints/
+  log_every_steps: 50
+  save_best_only: true
